@@ -1,0 +1,31 @@
+name: Build kernel
+on: workflow_dispatch
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc bison flex libssl-dev libelf-dev zip python3 gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi
+      - name: Get clang
+        run: git clone --depth=1 https://github.com/kdrag0n/proton-clang $HOME/clang
+      - name: Build
+        run: |
+          export PATH=$HOME/clang/bin:$PATH
+          export KBUILD_BUILD_USER=builder
+          export KBUILD_BUILD_HOST=github
+          make O=out ARCH=arm64 vendor/moe_defconfig
+          make -j$(nproc) O=out ARCH=arm64 CC=clang LD=ld.lld AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- CLANG_TRIPLE=aarch64-linux-gnu- Image.gz-dtb dtbo.img
+      - name: Make zip
+        run: |
+          git clone --depth=1 https://github.com/Frenzy169/AnyKernel3 AK3
+          cp out/arch/arm64/boot/Image.gz-dtb out/arch/arm64/boot/dtbo.img AK3/
+          cd AK3
+          rm -rf .git
+          zip -r9 ../Kernel-ginkgo.zip .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Kernel-ginkgo
+          path: Kernel-ginkgo.zip
