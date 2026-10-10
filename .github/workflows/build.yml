@@ -8,7 +8,7 @@ jobs:
       - name: Install tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc bison flex libssl-dev libelf-dev zip python3 gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi
+          sudo apt-get install -y bc bison flex libssl-dev libelf-dev zip python3 libtinfo5 gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi
       - name: Get clang
         run: git clone --depth=1 https://github.com/kdrag0n/proton-clang $HOME/clang
       - name: Build
@@ -16,6 +16,9 @@ jobs:
           export PATH=$HOME/clang/bin:$PATH
           export KBUILD_BUILD_USER=builder
           export KBUILD_BUILD_HOST=github
+          clang --version
+          echo 'int main(void){return 0;}' > /tmp/t.c
+          clang --target=aarch64-linux-gnu -fstack-protector-strong -c /tmp/t.c -o /tmp/t.o || true
           make O=out ARCH=arm64 vendor/moe_defconfig
           make -j$(nproc) O=out ARCH=arm64 CC=clang LD=ld.lld AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- CLANG_TRIPLE=aarch64-linux-gnu- Image.gz-dtb dtbo.img
       - name: Make zip
